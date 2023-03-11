@@ -113,5 +113,4 @@ if (final_prediction[0]==0):
 else:
   print("Person has diabetes")
 
-!git init
 
