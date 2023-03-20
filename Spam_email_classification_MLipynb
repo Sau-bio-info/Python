@@ -1,0 +1,788 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyPKslEfoXSoc2jdGPrIyrdg",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Sau-bio-info/Python/blob/main/Spam_email_classification_MLipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 64,
+      "metadata": {
+        "id": "gCo1cf3l9ueD"
+      },
+      "outputs": [],
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.feature_extraction.text import TfidfVectorizer\n",
+        "from sklearn.linear_model import LogisticRegression\n",
+        "from sklearn.metrics import accuracy_score\n",
+        "from sklearn.metrics import confusion_matrix\n",
+        "from sklearn.metrics import d\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Data collection and pre-processing."
+      ],
+      "metadata": {
+        "id": "P9vncaBdAoEb"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df=pd.read_csv(\"/content/mail_data.csv\")\n",
+        "\n",
+        "df.head()\n",
+        "#df.columns"
+      ],
+      "metadata": {
+        "id": "guqR5xl2-0hK",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 206
+        },
+        "outputId": "cff39f74-de4f-4f36-d771-23226dde410b"
+      },
+      "execution_count": 23,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "  Category                                            Message\n",
+              "0      ham  Go until jurong point, crazy.. Available only ...\n",
+              "1      ham                      Ok lar... Joking wif u oni...\n",
+              "2     spam  Free entry in 2 a wkly comp to win FA Cup fina...\n",
+              "3      ham  U dun say so early hor... U c already then say...\n",
+              "4      ham  Nah I don't think he goes to usf, he lives aro..."
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-4c4531c9-8b59-404d-b153-0cb71e0d2545\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Category</th>\n",
+              "      <th>Message</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>ham</td>\n",
+              "      <td>Go until jurong point, crazy.. Available only ...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>ham</td>\n",
+              "      <td>Ok lar... Joking wif u oni...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>spam</td>\n",
+              "      <td>Free entry in 2 a wkly comp to win FA Cup fina...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>ham</td>\n",
+              "      <td>U dun say so early hor... U c already then say...</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>ham</td>\n",
+              "      <td>Nah I don't think he goes to usf, he lives aro...</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-4c4531c9-8b59-404d-b153-0cb71e0d2545')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-4c4531c9-8b59-404d-b153-0cb71e0d2545 button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-4c4531c9-8b59-404d-b153-0cb71e0d2545');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 23
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.isnull().sum()"
+      ],
+      "metadata": {
+        "id": "w7jIeDzXBoGk",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f44a5662-4e13-4769-f06b-bfba6e909528"
+      },
+      "execution_count": 24,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "Category    0\n",
+              "Message     0\n",
+              "dtype: int64"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 24
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#df.replace(to_replace=' ', value=\"NAN\")\n",
+        "\n",
+        "df.shape"
+      ],
+      "metadata": {
+        "id": "_OlH1xIjCQpg",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f18ce66b-d19c-4c3e-f53b-38af0b08dd7a"
+      },
+      "execution_count": 25,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(5572, 2)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 25
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df.Category.value_counts()"
+      ],
+      "metadata": {
+        "id": "PWgVegLkSz1i",
+        "outputId": "6ff19aeb-17ae-40e2-9c74-b62e1bd72837",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 26,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "ham     4825\n",
+              "spam     747\n",
+              "Name: Category, dtype: int64"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 26
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "y=pd.get_dummies(df.Category, drop_first=True)"
+      ],
+      "metadata": {
+        "id": "yVApcj6lDkRD"
+      },
+      "execution_count": 27,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "x=df['Message']"
+      ],
+      "metadata": {
+        "id": "w0g1Tv1sDvtb"
+      },
+      "execution_count": 28,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Spam-1 Ham-0"
+      ],
+      "metadata": {
+        "id": "YGTiNI52GxZb"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "y.dtypes"
+      ],
+      "metadata": {
+        "id": "5aAyXZWCTtjI",
+        "outputId": "aa4741a9-4af2-4271-eab6-e20210bb25c9",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 35,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "spam    uint8\n",
+              "dtype: object"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 35
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "x"
+      ],
+      "metadata": {
+        "id": "kWJQ4ULjT0uO",
+        "outputId": "17c7d8d6-5041-4c04-af7e-979e3bd6198b",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 30,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0       Go until jurong point, crazy.. Available only ...\n",
+              "1                           Ok lar... Joking wif u oni...\n",
+              "2       Free entry in 2 a wkly comp to win FA Cup fina...\n",
+              "3       U dun say so early hor... U c already then say...\n",
+              "4       Nah I don't think he goes to usf, he lives aro...\n",
+              "                              ...                        \n",
+              "5567    This is the 2nd time we have tried 2 contact u...\n",
+              "5568                 Will ü b going to esplanade fr home?\n",
+              "5569    Pity, * was in mood for that. So...any other s...\n",
+              "5570    The guy did some bitching but I acted like i'd...\n",
+              "5571                           Rofl. Its true to its name\n",
+              "Name: Message, Length: 5572, dtype: object"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 30
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "x_train,x_test,y_train,y_test= train_test_split(x,y,test_size=0.2, random_state=20, stratify=y)"
+      ],
+      "metadata": {
+        "id": "L0rt0BWKIAms"
+      },
+      "execution_count": 31,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Splitting data into train and test."
+      ],
+      "metadata": {
+        "id": "rQRh2W1eIW8G"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(x_train.shape,x_test.shape)"
+      ],
+      "metadata": {
+        "id": "D2O8pMMLILtW",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "dd2ee141-d82c-43d7-b919-c1c5a129b773"
+      },
+      "execution_count": 32,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "(4457,) (1115,)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Feature Extraction."
+      ],
+      "metadata": {
+        "id": "38qsxtmKJAKr"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Transform text data to feature vector.\n",
+        "\n",
+        "feature_extraction= TfidfVectorizer(min_df=1, stop_words='english', lowercase=True)"
+      ],
+      "metadata": {
+        "id": "lSTCTHbDIP_G"
+      },
+      "execution_count": 33,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "x_train_features=feature_extraction.fit_transform(x_train)\n",
+        "x_test_features=feature_extraction.transform(x_test)\n"
+      ],
+      "metadata": {
+        "id": "QOCeK5dlWUin"
+      },
+      "execution_count": 34,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(x_train_features)"
+      ],
+      "metadata": {
+        "id": "iZZ3fB18Zc_p"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#converting y_test and y_train to int\n",
+        "\n",
+        "y_test=y_test.astype('int')\n",
+        "t_train=y_train.astype('int')"
+      ],
+      "metadata": {
+        "id": "Mjo4b6fvYEY4"
+      },
+      "execution_count": 36,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "y_train.dtypes"
+      ],
+      "metadata": {
+        "id": "C9xbZnmTZOoW",
+        "outputId": "fcec6e99-e1c5-48a5-b293-8d800ac45b88",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 38,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "spam    uint8\n",
+              "dtype: object"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 38
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Training the model with Logistic regression"
+      ],
+      "metadata": {
+        "id": "skxAAYkDa8GV"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model=LogisticRegression()"
+      ],
+      "metadata": {
+        "id": "gno0qTAMZSFN"
+      },
+      "execution_count": 45,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.fit(x_train_features,y_train)"
+      ],
+      "metadata": {
+        "id": "_ZrYLXtUaYDD"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Evaluvating the model."
+      ],
+      "metadata": {
+        "id": "ryczMY55bQ2s"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "prediction_training=model.predict(x_train_features)"
+      ],
+      "metadata": {
+        "id": "jWQje-2wadHS"
+      },
+      "execution_count": 52,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "prediction[0:10], y_train[0:10]"
+      ],
+      "metadata": {
+        "id": "l0KO2CDOa2Wa",
+        "outputId": "f51e4ac1-bbf2-49bf-b942-f745566dcb82",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 58,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "(array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0], dtype=uint8),       spam\n",
+              " 3451     0\n",
+              " 4817     0\n",
+              " 3942     1\n",
+              " 1112     0\n",
+              " 2048     0\n",
+              " 1586     0\n",
+              " 320      0\n",
+              " 5406     0\n",
+              " 5549     0\n",
+              " 489      0)"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 58
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracy_training=accuracy_score(y_train, prediction_training)"
+      ],
+      "metadata": {
+        "id": "fT2YB7HCbhJI"
+      },
+      "execution_count": 59,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracy_training"
+      ],
+      "metadata": {
+        "id": "OVhAgpYzbtj3",
+        "outputId": "87e84172-a619-4735-dda5-68b820875ab9",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 60,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0.9661207089970832"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 60
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Evaluvating model using test data."
+      ],
+      "metadata": {
+        "id": "jxMSJ2bfcHYq"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "prediction_test=model.predict(x_test_features)\n",
+        "\n",
+        "accuracy_test=accuracy_score(prediction_test,y_test)\n",
+        "\n",
+        "accuracy_test"
+      ],
+      "metadata": {
+        "id": "z7WEHWgLcFde",
+        "outputId": "c6124ba6-0546-4be0-87ed-91e68356faf2",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 63,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0.9632286995515695"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 63
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cm=confusion_matrix(y_test,prediction_test)"
+      ],
+      "metadata": {
+        "id": "-_YdN_1acahW"
+      },
+      "execution_count": 66,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "cm"
+      ],
+      "metadata": {
+        "id": "CRWup9qNcwLd",
+        "outputId": "f8a6771d-7ed6-4b44-f323-9c1d8f9b8b26",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 67,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[966,   0],\n",
+              "       [ 41, 108]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 67
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Building the predictive system.\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "MqoOu3Rce7PF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "input_mail=[\"07732584351 - Rodger Burns - MSG = We tried to call you re your reply to our sms for a free nokia mobile + free camcorder. Please call now 08000930705 for delivery tomorrow\"]\n",
+        "\n",
+        "input_mail_features=feature_extraction.transform(input_mail)\n",
+        "\n",
+        "final_prediction=model.predict(input_mail_features)\n",
+        "\n",
+        "result=final_prediction[0]\n",
+        "\n",
+        "if result==1:\n",
+        "  print(\"Its a spam mail\")\n",
+        "\n",
+        "else:\n",
+        "  print(\"It's a Ham mail\")\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "I50uXLT4c-mb",
+        "outputId": "27c2ff34-dc5e-4368-d804-fe91b8c18b8f",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        }
+      },
+      "execution_count": 77,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Its a spam mail\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "8gla4hKDfgjj"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
